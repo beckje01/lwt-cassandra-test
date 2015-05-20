@@ -5,16 +5,18 @@ package service
  */
 class CassandraConfig {
 
-	String truststorePath
-	String truststorePassword
-	String keystorePath
-	String keystorePassword
+	JKSConfig truststore
+	JKSConfig keystore
 
 	String user
 	String password
 
 	List<String> seeds
 
-
+	class JKSConfig {
+		String path
+		String password
+	}
 
 }
+

@@ -3,6 +3,8 @@ package service
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.SSLOptions
 import com.datastax.driver.core.Session
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy
+import com.datastax.driver.core.policies.TokenAwarePolicy
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.google.inject.Singleton
@@ -32,9 +34,10 @@ class CassandraService extends AbstractModule {
 
 		def cassandraConfig = configData.get("/cassandra", CassandraConfig)
 
-		SSLContext sslContext = getSSLContext(cassandraConfig.truststorePath, cassandraConfig.truststorePassword, cassandraConfig.keystorePath, cassandraConfig.keystorePassword);
+		SSLContext sslContext = getSSLContext(cassandraConfig.truststore.path, cassandraConfig.truststore.password, cassandraConfig.keystore.path, cassandraConfig.keystore.password);
 
-		def builder = Cluster.builder()
+		//Groovy so just use the private constructor
+		def builder = Cluster.builder().withLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(null, 1, false, true)))
 
 		for (String seed : cassandraConfig.seeds) {
 			builder.addContactPoint(seed)
