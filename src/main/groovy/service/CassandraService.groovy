@@ -1,12 +1,12 @@
 package service
 
-import com.datastax.driver.core.AuthProvider
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.SSLOptions
 import com.datastax.driver.core.Session
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.google.inject.Singleton
+import ratpack.config.ConfigData
 
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
@@ -19,20 +19,29 @@ class CassandraService extends AbstractModule {
 	Cluster cluster
 	Session session
 
+	ConfigData configData
+
 	String[] cipherSuites = ["TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA"];
-	String truststorePath = "/Users/beckje01/scratch/dev-cass/.dev-truststore"
-	String truststorePassword = "Password1"
-	String keystorePath = "/Users/beckje01/scratch/dev-cass/.dev-truststore"
-	String keystorePassword = "Password1"
+
+	public CassandraService(ConfigData configData) {
+		this.configData = configData
+	}
 
 	@Override
 	protected void configure() {
 
-		SSLContext sslContext = getSSLContext(truststorePath, truststorePassword, keystorePath, keystorePassword);
+		def cassandraConfig = configData.get("/cassandra", CassandraConfig)
 
-		cluster = Cluster.builder().addContactPoint("54.84.83.91")
-			.withSSL(new SSLOptions(sslContext, cipherSuites))
-			.withCredentials("client", "")
+		SSLContext sslContext = getSSLContext(cassandraConfig.truststorePath, cassandraConfig.truststorePassword, cassandraConfig.keystorePath, cassandraConfig.keystorePassword);
+
+		def builder = Cluster.builder()
+
+		for (String seed : cassandraConfig.seeds) {
+			builder.addContactPoint(seed)
+		}
+
+		cluster = builder.withSSL(new SSLOptions(sslContext, cipherSuites))
+			.withCredentials(cassandraConfig.user, cassandraConfig.password)
 			.build()
 
 		session = cluster.connect()
