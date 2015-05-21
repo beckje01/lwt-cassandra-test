@@ -1,9 +1,11 @@
 package service
 
 import com.datastax.driver.core.Cluster
+import com.datastax.driver.core.PerHostPercentileTracker
 import com.datastax.driver.core.SSLOptions
 import com.datastax.driver.core.Session
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy
+import com.datastax.driver.core.policies.PercentileSpeculativeExecutionPolicy
 import com.datastax.driver.core.policies.TokenAwarePolicy
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
@@ -36,8 +38,13 @@ class CassandraService extends AbstractModule {
 
 		SSLContext sslContext = getSSLContext(cassandraConfig.truststore.path, cassandraConfig.truststore.password, cassandraConfig.keystore.path, cassandraConfig.keystore.password);
 
+		PerHostPercentileTracker tracker = PerHostPercentileTracker
+			.builderWithHighestTrackableLatencyMillis(5000)
+			.build();
+
 		//Groovy so just use the private constructor
 		def builder = Cluster.builder().withLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(null, 1, false, true)))
+			.withSpeculativeExecutionPolicy(new PercentileSpeculativeExecutionPolicy(tracker, 0.99, 3))
 
 		for (String seed : cassandraConfig.seeds) {
 			builder.addContactPoint(seed)
