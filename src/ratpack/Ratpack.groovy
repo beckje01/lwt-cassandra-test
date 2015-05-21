@@ -51,6 +51,15 @@ ratpack {
 			render "Found User: " + existingUser.getString("password")
 		}
 
+		get("userQ") {
+			def session = context.get(Session)
+			Statement stmt = QueryBuilder.select().all().from("global", "user").where(QueryBuilder.eq("username", "beckje01")).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+
+			def rs = session.execute(stmt)
+			def existingUser = rs.one()
+			render "Found User: " + existingUser.getString("password")
+		}
+
 		get("changePassword/:password") {
 			def session = context.get(Session)
 
